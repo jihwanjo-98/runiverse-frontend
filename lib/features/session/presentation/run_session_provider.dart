@@ -2,11 +2,13 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:runiverse/features/session/data/geolocator_location_repository.dart';
+import 'package:runiverse/features/session/data/wakelock_screen_awake.dart';
 import 'package:runiverse/features/session/domain/geo_point.dart';
 import 'package:runiverse/features/session/domain/location_repository.dart';
 import 'package:runiverse/features/session/domain/pace_calculator.dart';
 import 'package:runiverse/features/session/domain/run_metrics.dart';
 import 'package:runiverse/features/session/domain/run_session_state.dart';
+import 'package:runiverse/features/session/domain/screen_awake.dart';
 
 /// 위치를 누가 줄 것인가. 지금은 실제 GPS다.
 ///
@@ -17,6 +19,11 @@ import 'package:runiverse/features/session/domain/run_session_state.dart';
 /// (`auth_provider.dart`와 같은 판단). 화면 파일은 여전히 `data`를 모른다.
 final locationRepositoryProvider = Provider<LocationRepository>(
   (ref) => const GeolocatorLocationRepository(),
+);
+
+/// 달리는 동안 화면을 켜 둔다. 테스트는 아무것도 하지 않는 구현으로 갈아 끼운다.
+final screenAwakeProvider = Provider<ScreenAwake>(
+  (ref) => const WakelockScreenAwake(),
 );
 
 /// 지금 몇 시인가. 테스트가 시간을 돌리기 위해 갈아 끼운다.
