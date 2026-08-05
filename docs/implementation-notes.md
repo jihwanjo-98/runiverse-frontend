@@ -212,6 +212,7 @@
 | `assets/` 파일 추가 | `pubspec.yaml`의 `assets:` / `fonts:` 블록 (선언 없이는 번들되지 않는다) |
 | 앱 식별자(org) | `android/app/build.gradle.kts`와 iOS `Runner.xcodeproj/project.pbxproj` **양쪽** |
 | `pubspec.yaml` 의존성 | 이 문서 / `CLAUDE.md`의 Tech Stack |
+| `geolocator` 도입·제거 | `android/app/src/main/AndroidManifest.xml`의 위치 권한 선언 |
 | **비밀번호 규칙** (백엔드 `SignUpRequest`의 `@Size`·`@Pattern`) | `lib/features/auth/domain/password_rule.dart` + `AppStrings.authPasswordGuide` 등 문구 4개 |
 | `PasswordRule`의 규칙 | `FakeAuthRepository.seedPassword` — 씨앗 계정이 자기 규칙에 걸리면 로그인 시험을 못 한다 |
 
@@ -323,3 +324,88 @@ S01 스플래시 ─┬─ 로그인 상태 ────────────
    **탈취로 보고 리프레시 토큰을 지운다.** 401이 동시에 여러 개 나면 두 번째 호출이 이미 회전된
    토큰을 보내고, **잘못 없는 사용자가 로그아웃된다.** `Future<bool>?` 하나를 공유해 한 번만 부른다.
 3. **재시도한 요청이 또 401이면 멈춘다.** 아니면 무한 루프다.
+
+---
+
+## 10. 1인 러닝 세션
+
+설계 근거는 `docs/specs/2026-08-05-solo-run-design.md`,
+GPS가 실제로 어떻게 도는지는 바탕화면 `Runiverse_러닝_협업문서.md`에 있다.
+여기에는 **실제로 앱을 죽였던 것만** 적는다.
+
+### 10-1. `initState`에서 provider를 바꾸면 죽는다
+
+출발 준비 화면이 `initState`에서 바로 `prepare()`를 불렀더니
+`Tried to modify a provider while the widget tree was building`으로 죽었다.
+`prepare()`가 첫 `await` 전에 `state = RunPreparing()`을 하기 때문이다.
+
+```dart
+// ✗ 트리를 그리는 도중에 provider가 바뀐다
+void initState() { super.initState(); _prepare(); }
+
+// ✓ 프레임이 끝난 뒤에 부른다
+void initState() {
+  super.initState();
+  WidgetsBinding.instance.addPostFrameCallback((_) => _prepare());
+}
+```
+
+⚠️ **`AuthController.restore()`는 우연히 안 걸린다.** 첫 줄이 `await`라
+동기 구간에서 상태를 안 건드리기 때문이다. 그 코드를 보고 "initState에서 불러도 된다"고
+읽으면 안 된다.
+
+### 10-2. `dispose()`에서 `ref.read`를 쓰지 않는다
+
+러닝 화면이 `dispose()`에서 wakelock을 풀려고 `ref.read`를 불렀더니
+`Using "ref" when a widget is about to or has been unmounted is unsafe`로 죽었다.
+그 시점의 `BuildContext`는 이미 트리에서 떨어져 있다.
+
+→ **`initState` 시점에 필드로 붙잡아 둔다.**
+
+```dart
+late final ScreenAwake _screen = ref.read(screenAwakeProvider);
+```
+
+### 10-3. 러닝 중에는 `pumpAndSettle`이 끝나지 않는다
+
+세션 컨트롤러가 1초짜리 반복 타이머를 돌린다. 위젯 테스트에서 러닝 상태로 두고
+`pumpAndSettle`을 부르면 타임아웃이다. **러닝 중에는 `pump()`를 세어 가며 쓴다.**
+
+그리고 테스트가 러닝 중에 끝나면 `Pending timers`로 실패한다.
+`await tester.pumpWidget(const SizedBox())`로 앱을 걷어내면
+provider가 dispose되면서 타이머와 위치 구독이 함께 끊긴다.
+
+이건 인증의 인증번호 카운트다운에서 겪은 것과 같은 함정이다(§9 계열).
+
+### 10-4. 스트림 이벤트는 `pump()` 두 번이다
+
+`FakeLocationRepository.emit()`으로 좌표를 흘려보내고 `pump()`를 한 번만 하면
+화면이 아직 안 바뀌어 있다. **이벤트가 컨트롤러에 닿는 데 한 프레임, 바뀐 상태로
+다시 그리는 데 한 프레임**이 든다.
+
+한 번만 pump하고 "왜 반영이 안 되지"로 30분을 쓴 자리다.
+
+### 10-5. ⚠️ 좌표를 보정하지 않는다 — 서 있어도 거리가 는다
+
+GPS 좌표는 가만히 있어도 몇 미터씩 흔들리고, 지금 구현은 그걸 전부 거리로 센다.
+신호가 나쁜 실내에서는 서 있는 채로 분당 수십 미터가 쌓인다.
+
+**버그가 아니라 알고 남겨둔 상태다.** 기준값을 책상에서 정할 수 없어 실기기 확인 뒤로 미뤘다.
+넣을 자리는 `RunSessionController._onPoint()` 한 곳이다.
+
+### 10-6. 시간은 좌표가 아니라 시계로 잰다
+
+터널에서 GPS가 30초 끊겨도 시간은 흘러야 한다. 좌표 사이의 시간차를 더하면
+"30초 동안 멈춰 있었다"가 된다.
+
+일시정지는 `_accumulated`에 얼려두고, **재개할 때 `_points`를 비운다** —
+그래야 멈춘 사이에 차를 타고 이동해도 거리에 안 들어간다.
+
+### 10-7. 포그라운드 전용이다
+
+화면이 꺼지면 추적도 멈춘다. 그래서 달리는 동안 `wakelock_plus`로 화면을 켜 두고,
+**끝나면 반드시 푼다.** 안 풀면 앱을 나가도 화면이 안 꺼진다.
+
+백그라운드 추적은 포그라운드 서비스 · 알림 채널 · `ACCESS_BACKGROUND_LOCATION` ·
+제조사별 배터리 최적화까지 딸려 온다. §8이 기술 리스크 1순위로 지목한 부분이라
+포그라운드부터 실기기에서 확인하고 넘어간다.
