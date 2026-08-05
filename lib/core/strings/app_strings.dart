@@ -251,10 +251,6 @@ abstract final class AppStrings {
   /// 매칭은 아직 서버가 없다. 카카오·애플 버튼과 같은 처리다.
   static const homeMatchComingSoon = '매칭은 아직 준비 중이에요';
 
-  /// ⚠️ **한시적이다.** 러닝 화면이 붙는 PR에서 지운다.
-  /// 그전까지 버튼이 아무 반응도 없으면 고장으로 읽힌다.
-  static const homeSoloPending = '러닝 화면을 준비하고 있어요';
-
   static const homeSectionCompetition = '다가오는 대회';
   static const homeSectionRecentRun = '최근 러닝';
 
@@ -263,4 +259,66 @@ abstract final class AppStrings {
 
   /// 빈 상태에 붙는 한 줄. 무엇을 하면 채워지는지 알려준다.
   static const homeEmptyRecentRunHint = '혼자 달리기로 첫 기록을 남겨보세요';
+
+  // ── 1인 러닝 · 출발 준비 ─────────────────────────────────────
+  //
+  // GPS는 켜자마자 위치를 알지 못한다. 실내에서는 수십 초가 걸린다.
+  // 신호를 잡기 전에 출발하면 초반 거리가 통째로 빠지므로 그때까지 버튼을 잠근다.
+
+  static const runPrepareTitle = '출발 준비';
+  static const runQuit = '그만두기';
+
+  /// 상태는 **색만으로 알리지 않는다.** 점 옆에 이 문구를 함께 둔다
+  /// (`docs/implementation-notes.md` §3-5).
+  static const runGpsSearching = 'GPS 신호를 찾고 있어요';
+  static const runGpsReady = 'GPS 신호가 잡혔어요';
+
+  /// 왜 기다려야 하는지 알려준다. 이유 없이 잠긴 버튼은 고장으로 읽힌다.
+  static const runGpsWhy = '신호를 잡기 전에 출발하면 초반 거리가 빠져요';
+
+  static const runStartCta = '시작하기';
+
+  // 위치를 못 쓸 때 — 세 경우의 원인이 달라 문구도 다르다.
+
+  static const runAccessDenied = '위치 권한이 있어야 거리를 잴 수 있어요';
+  static const runAccessDeniedForever = '설정에서 위치 권한을 켜주세요';
+  static const runServiceDisabled = '기기의 위치 기능이 꺼져 있어요';
+  static const runOpenSettings = '설정 열기';
+
+  // ── 1인 러닝 · 진행 ──────────────────────────────────────────
+
+  static const runMetricPace = '페이스';
+  static const runMetricTime = '시간';
+  static const runMetricDistance = '거리';
+  static const runMetricCadence = '케이던스';
+  static const runMetricCalorie = '칼로리';
+
+  static const runUnitPerKm = '/km';
+  static const runUnitKm = 'km';
+  static const runUnitSpm = 'spm';
+  static const runUnitKcal = 'kcal';
+
+  /// 아직 잴 수 없는 지표. **지어낸 값을 넣지 않는다.**
+  /// 케이던스는 가속도계를, 칼로리는 체중을 읽어야 나온다.
+  static const runMetricUnavailable = '--';
+
+  static const runStopCta = '중지';
+
+  // ── 1인 러닝 · 중지 시트 ─────────────────────────────────────
+
+  static const runPausedTitle = '일시정지됨';
+  static const runResumeCta = '계속 달리기';
+
+  /// 되돌릴 수 없는 액션이라 탭이 아니라 **2초 길게 누르기**로 받는다
+  /// (`docs/implementation-notes.md` §4).
+  static const runFinishHold = '길게 눌러 종료';
+
+  // ── 1인 러닝 · 요약 ──────────────────────────────────────────
+
+  static const runSummaryTitle = '러닝 완료';
+  static const runSummaryAvgPace = '평균 페이스';
+  static const runSummaryHome = '홈으로';
+
+  /// ⚠️ 기록을 남길 곳이 아직 없다. **없는 저장을 있는 척하지 않는다.**
+  static const runSummaryNotSaved = '이번 기록은 저장되지 않아요';
 }
