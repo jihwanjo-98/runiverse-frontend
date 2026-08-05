@@ -55,6 +55,21 @@ abstract final class AppRoutes {
   /// 여기를 지나가게 해두었다. **앱을 지웠다 깔면 기존 사용자도 이 화면을 다시 본다.**
   static const profileSetup = '/onboarding/profile';
 
+  // ── 1인 러닝 — 탭 셸 밖이다 ──────────────────────────────────
+  //
+  // 달리는 동안 탭 바가 보이면 실수로 화면을 벗어난다. 셸 밖에 둔다.
+
+  /// 출발 준비. GPS 신호를 기다린다.
+  static const runPrepare = '/run/prepare';
+
+  /// 러닝 진행.
+  ///
+  /// **뒤로가기로 벗어날 수 없다.** 종료는 중지 시트의 길게 누르기뿐이다.
+  static const runSession = '/run';
+
+  /// 러닝 요약.
+  static const runSummary = '/run/summary';
+
   // ── 탭 셸 안 ────────────────────────────────────────────────
 
   /// 홈 (S05)
