@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:runiverse/app/router/app_routes.dart';
 import 'package:runiverse/core/strings/app_strings.dart';
 import 'package:runiverse/core/theme/extensions/app_colors.dart';
 import 'package:runiverse/core/theme/tokens/app_spacing.dart';
@@ -38,7 +40,7 @@ class HomePage extends StatelessWidget {
             HomeHero(
               greeting: _greetingText(GreetingRule.of(DateTime.now())),
               onMatch: () => _notReady(context, AppStrings.homeMatchComingSoon),
-              onSolo: () => _notReady(context, AppStrings.homeSoloPending),
+              onSolo: () => context.go(AppRoutes.runPrepare),
             ),
             const SizedBox(height: AppSpacing.space7),
 

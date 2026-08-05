@@ -1,5 +1,3 @@
-// flutter_test는 material을 재수출하지 않는다.
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiverse/app/app.dart';
@@ -8,13 +6,22 @@ import 'package:runiverse/core/strings/app_strings.dart';
 import 'package:runiverse/core/widgets/app_button.dart';
 import 'package:runiverse/core/widgets/empty_state_card.dart';
 import 'package:runiverse/features/home/presentation/home_hero.dart';
+import 'package:runiverse/features/session/data/fake_location_repository.dart';
+import 'package:runiverse/features/session/presentation/run_prepare_page.dart';
+import 'package:runiverse/features/session/presentation/run_session_provider.dart';
 
 /// 홈 (S05 상태 1) — 무엇이 보이고, 아직 없는 화면으로 가는 버튼이 무엇을 하는가.
 void main() {
   Future<void> pumpHome(WidgetTester tester) async {
     await tester.pumpWidget(
-      const ProviderScope(
-        child: RuniverseApp(initialLocation: AppRoutes.home),
+      ProviderScope(
+        // 1인 러닝으로 넘어가면 위치를 요청한다. 테스트에는 GPS가 없다.
+        overrides: [
+          locationRepositoryProvider.overrideWithValue(
+            FakeLocationRepository(),
+          ),
+        ],
+        child: const RuniverseApp(initialLocation: AppRoutes.home),
       ),
     );
     await tester.pumpAndSettle();
@@ -65,8 +72,8 @@ void main() {
     });
   });
 
-  group('아직 없는 화면으로 가는 버튼', () {
-    testWidgets('매칭을 누르면 준비 중이라고 알려준다', (tester) async {
+  group('버튼이 가는 곳', () {
+    testWidgets('매칭은 아직 없어 준비 중이라고 알려준다', (tester) async {
       await pumpHome(tester);
 
       await tester.tap(find.widgetWithText(AppButton, AppStrings.homeMatchCta));
@@ -75,13 +82,14 @@ void main() {
       expect(find.text(AppStrings.homeMatchComingSoon), findsOneWidget);
     });
 
-    testWidgets('1인 러닝을 누르면 준비 중이라고 알려준다', (tester) async {
+    testWidgets('1인 러닝을 누르면 출발 준비로 간다', (tester) async {
       await pumpHome(tester);
 
       await tester.tap(find.widgetWithText(AppButton, AppStrings.homeSoloCta));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
-      expect(find.text(AppStrings.homeSoloPending), findsOneWidget);
+      expect(find.byType(RunPreparePage), findsOneWidget);
+      expect(find.byType(HomeHero), findsNothing);
     });
   });
 
